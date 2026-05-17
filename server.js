@@ -48,17 +48,56 @@ const chatLimiter = rateLimit({ windowMs: 10*60*1000, max: 30, message: { error:
 // ── Login (still hardcoded — auth milestone later) ──────
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'register.html')));
+app.get('/profile', (req, res) => res.sendFile(path.join(__dirname, 'public', 'profile.html')));
+app.get('/plans', (req, res) => res.sendFile(path.join(__dirname, 'public', 'plans.html')));
+// ─────────────────────────────────────────────────────────────────
+// HANDOFF — Replace the DUMMY_USERS path below with Auth0 + Prisma.
+// ─────────────────────────────────────────────────────────────────
+//
+// Current behaviour (demo-only):
+//   admin@beyondsite.com    / admin123     → admin role (bypasses subscription gate)
+//   customer@beyondsite.com / customer123  → customer role (sees locked flow)
+// All other credentials are REJECTED — the earlier "any email" backdoor is closed.
+//
+// Production wiring (already scaffolded — just swap the route body):
+//   1. Set AUTH0_DOMAIN + AUTH0_AUDIENCE in .env. Without them the
+//      middleware silently bypasses (returns admin) — see src/lib/auth.js.
+//   2. On the frontend, redirect /login to Auth0's hosted login page
+//      (Universal Login). Use the auth0-spa-js SDK.
+//   3. Replace the /api/login handler below with an Auth0-callback
+//      handler that exchanges the auth-code for a JWT, then:
+//          const decoded = await verifyToken(token);            // src/lib/auth.js
+//          const user    = await getOrCreateUser(decoded);      // upserts via Prisma
+//          res.json({ success: true, isAdmin: user.role === 'ADMIN', ... });
+//   4. Protect routes that need a user with:
+//          app.post('/api/generate', authenticate(), handler)   // src/lib/auth.js
+//   5. Drop the DUMMY_USERS constant entirely once the above ships.
+//
+// First admin: run `npm run db:seed` after the first deploy — it
+// upserts an ADMIN row keyed by AUTH0_BOOTSTRAP_ADMIN_EMAIL.
+// ─────────────────────────────────────────────────────────────────
+const DUMMY_USERS = {
+  'admin@beyondsite.com':    { password: 'admin123',    isAdmin: true,  name: 'Admin' },
+  'customer@beyondsite.com': { password: 'customer123', isAdmin: false, name: 'Customer' }
+};
+
 app.post('/api/login', (req, res) => {
-  const { email, password } = req.body;
-  // Hardcoded admin credentials
-  if (email === 'admin@beyondsite.com' && password === 'admin123') {
-    return res.json({ success: true, redirect: '/', isAdmin: true });
+  const { email, password } = req.body || {};
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required.' });
   }
-  // Regular user login (in production, check database)
-  if (email && password) {
-    return res.json({ success: true, redirect: '/', isAdmin: false });
+  const account = DUMMY_USERS[String(email).toLowerCase().trim()];
+  if (!account || account.password !== password) {
+    return res.status(401).json({ error: 'Invalid email or password.' });
   }
-  res.status(401).json({ error: 'Invalid email or password.' });
+  logger.info({ email, isAdmin: account.isAdmin }, 'User logged in (dummy auth)');
+  return res.json({
+    success: true,
+    redirect: '/',
+    isAdmin: account.isAdmin,
+    email,
+    name: account.name
+  });
 });
 app.post('/api/register', (req, res) => {
   const { firstName, lastName, email, password } = req.body;

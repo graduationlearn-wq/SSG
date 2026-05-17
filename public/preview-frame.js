@@ -16,8 +16,18 @@
   const VP_LABELS = { desktop: 'Desktop', tablet: 'Tablet', mobile: 'Mobile' };
 
   let activeDevice = 'desktop';
-  let frameEl, stageEl, wrapEl, buttons;
+  let frameEl, stageEl, wrapEl, buttons, chromeEl, deviceBarEl;
   let initialized = false;
+
+  // Total height of the fixed header rows (device bar + chrome) inside the
+  // preview container. The stage is offset by this much so the iframe
+  // renders BELOW the header — otherwise the website's own nav gets hidden
+  // behind the chrome.
+  function headerOffset() {
+    const b = deviceBarEl ? deviceBarEl.offsetHeight : 0;
+    const c = chromeEl    ? chromeEl.offsetHeight    : 0;
+    return b + c;
+  }
 
   function el(tag, attrs, kids) {
     const e = document.createElement(tag);
@@ -46,8 +56,13 @@
     const dims = VP_DIMS[activeDevice];
     if (!dims) return;
 
+    // Push the stage down past the header rows so the iframe's own nav is
+    // never hidden behind the device bar / chrome.
+    const offsetTop = headerOffset();
+    stageEl.style.top = offsetTop + 'px';
+
     const availW = wrapEl.clientWidth;
-    const availH = wrapEl.clientHeight;
+    const availH = wrapEl.clientHeight - offsetTop;
     if (availW <= 0 || availH <= 0) return;
 
     const scale = Math.min(availW / dims.w, availH / dims.h, 1);
@@ -77,8 +92,9 @@
     stage.className = 'pf-frame-stage';
     frameEl.parentNode.insertBefore(stage, frameEl);
     stage.appendChild(frameEl);
-    stageEl = stage;
-    wrapEl  = container;
+    stageEl  = stage;
+    wrapEl   = container;
+    chromeEl = chrome;
 
     const bar = el('div', { class: 'pf-device-bar' }, [
       el('span', { class: 'pf-device-label' }, 'View'),
@@ -93,7 +109,13 @@
     ]);
     buttons = bar.querySelectorAll('.tpv-device');
 
-    chrome.appendChild(bar);
+    // Insert the device bar ABOVE the chrome as the first row of the
+    // preview container. This way:
+    //   1. The buttons no longer compete with the iframe's own nav.
+    //   2. Combined with the headerOffset() applied to .pf-frame-stage,
+    //      the iframe content starts cleanly below both rows.
+    container.insertBefore(bar, chrome);
+    deviceBarEl = bar;
 
     layoutFrame();
     window.addEventListener('resize', layoutFrame);

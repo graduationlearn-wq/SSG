@@ -997,10 +997,10 @@ function portfolioSample() {
 function insurtechSample() {
   return {
     ...commonSample,
-    businessName: 'Heph',
+    businessName: 'Stratus',
     tagline: 'Insurance APIs for the modern stack.',
-    _description: 'Heph is a B2B InsurTech API platform powering insurers, brokers, and embedded-insurance teams. Quote, underwrite, claim — one developer-first stack. SOC 2 Type II, IRDAI-aligned. Founded 2020 in Bangalore.',
-    primaryColor: '#00dcb4',
+    _description: 'Stratus is a B2B InsurTech API platform powering insurers, brokers, and embedded-insurance teams. Quote, underwrite, claim — one developer-first stack. SOC 2 Type II, IRDAI-aligned. Founded 2020 in Bangalore.',
+    primaryColor: '#00a085',
     foundedYear: '2020',
     tone: 'professional',
     heroBadge: 'SOC 2 Type II · IRDAI-aligned',
@@ -1010,9 +1010,9 @@ function insurtechSample() {
     heroCtaPrimary: 'Get API Keys',
     heroCtaSecondary: 'Read Docs',
     codeLanguage: 'node.js',
-    codeSnippet: `const heph = new Heph(process.env.HEPH_KEY);
+    codeSnippet: `const stratus = new Stratus(process.env.STRATUS_KEY);
 
-const quote = await heph.quotes.create({
+const quote = await stratus.quotes.create({
   product: 'health',
   age: 32,
   city: 'mumbai',
@@ -1069,7 +1069,7 @@ console.log(quote.premium);
     ctaBody: 'Sandbox keys, full docs, and a Slack channel with our engineers — that\'s how integrations move from "let me explore" to "shipped" in a week.',
     ctaButton: 'Get API Keys',
     ctaNote: 'Sandbox keys are free · No credit card required',
-    email: 'partners@heph.dev',
+    email: 'partners@stratus.dev',
     phone: '+91 80 4567 8900',
     address: 'Indiranagar, Bangalore 560038',
     hours: 'Mon–Fri · 09:00–18:00 IST'
@@ -1079,9 +1079,9 @@ console.log(quote.premium);
 function insuranceMarketSample() {
   return {
     ...commonSample,
-    businessName: 'Turtlemint',
+    businessName: 'Coverwise',
     tagline: 'Compare. Buy. Claim. All under one roof.',
-    _description: 'Turtlemint is an IRDAI-licensed insurance broker that helps Indian families compare and buy insurance from 50+ licensed carriers. 12 lakh+ customers served. 97% claim assistance success rate. Founded in 2014 in Mumbai.',
+    _description: 'Coverwise is an IRDAI-licensed insurance broker that helps Indian families compare and buy insurance from 50+ licensed carriers. 12 lakh+ customers served. 97% claim assistance success rate. Founded in 2014 in Mumbai.',
     primaryColor: '#00856f',
     foundedYear: '2014',
     tone: 'friendly',
@@ -1141,7 +1141,7 @@ function insuranceMarketSample() {
     ctaBody: 'Quotes from every major insurer, side-by-side. No commission added, no obligation, no spam — just a fair comparison.',
     ctaButton: 'Compare Now',
     ctaNote: 'Free comparison · No obligation · IRDAI Lic. CB-XXX/2014',
-    email: 'help@turtlemint.in',
+    email: 'help@coverwise.in',
     phone: '1800 200 5000',
     address: 'Lower Parel, Mumbai 400013',
     hours: 'Mon–Sat · 9:00 AM – 9:00 PM IST'

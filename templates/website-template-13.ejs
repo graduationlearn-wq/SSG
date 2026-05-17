@@ -3,7 +3,7 @@
   const L = locals || {};
   const esc = (s) => (s == null ? '' : String(s));
   const def = (v, d) => (v && String(v).trim() ? v : d);
-  const bn      = esc(L.businessName) || 'Turtlemint';
+  const bn      = esc(L.businessName) || 'Coverwise';
   const tagln   = esc(L.tagline)      || 'Compare. Buy. Claim. All under one roof.';
   const accent  = L.primaryColor      || '#00856f';
   const year    = L.year              || new Date().getFullYear();
@@ -96,7 +96,7 @@
     const b = (parts[1] || '')[0] || (parts[0] || '').slice(1,2);
     return (a + b).toUpperCase();
   }
-  const emailV   = esc(L.email)   || 'help@turtlemint.in';
+  const emailV   = esc(L.email)   || 'help@coverwise.in';
   const phoneV   = esc(L.phone)   || '1800 200 5000';
   const addressV = esc(L.address) || 'Lower Parel, Mumbai 400013';
   const hoursV   = esc(L.hours)   || 'Mon–Sat · 9:00 AM – 9:00 PM IST';

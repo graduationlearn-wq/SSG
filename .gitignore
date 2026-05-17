@@ -26,7 +26,8 @@ SiteMemory/
 
 # Prisma
 prisma/*.db
-prisma/migrations/
+# Note: prisma/migrations/ IS committed — deployers run `prisma migrate deploy` against it.
+# Only local SQLite scratch files (*.db) are ignored.
 
 # Coverage
 coverage/

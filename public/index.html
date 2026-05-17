@@ -193,9 +193,23 @@
 
             <!-- Top form: basic info + template picker -->
             <form id="inputForm" class="form-modern">
+              <!-- Inline validation banner — populated by showPreview() when required fields are empty -->
+              <div class="form-banner-error" id="formBannerError" hidden>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8"  x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <div class="form-banner-body">
+                  <strong id="formBannerTitle">Please complete the required fields</strong>
+                  <span id="formBannerDetail">Business name, tagline, and description are needed before you can preview.</span>
+                </div>
+                <button type="button" class="form-banner-close" aria-label="Dismiss" onclick="document.getElementById('formBannerError').hidden=true">×</button>
+              </div>
+
               <div class="form-row-2">
                 <div class="form-group">
-                  <label for="businessName">Business Name</label>
+                  <label for="businessName">Business Name <span class="required-mark" aria-label="required">*</span></label>
                   <div class="input-box">
                     <input
                       type="text"
@@ -203,12 +217,13 @@
                       name="businessName"
                       placeholder="e.g., Luna Creative Studio"
                       required
+                      data-required-msg="Business name is required"
                     />
                     <span class="input-highlight"></span>
                   </div>
                 </div>
                 <div class="form-group">
-                  <label for="tagline">Tagline</label>
+                  <label for="tagline">Tagline <span class="required-mark" aria-label="required">*</span></label>
                   <div class="input-box">
                     <input
                       type="text"
@@ -216,6 +231,7 @@
                       name="tagline"
                       placeholder="e.g., Design That Inspires"
                       required
+                      data-required-msg="Tagline is required"
                     />
                     <span class="input-highlight"></span>
                   </div>
@@ -225,7 +241,7 @@
 
               <div class="form-group">
                 <label for="description">
-                  Description
+                  Description <span class="required-mark" aria-label="required">*</span>
                   <span class="label-hint">— in detail</span>
                 </label>
                 <div class="input-box">
@@ -235,6 +251,7 @@
                     rows="4"
                     placeholder="What does your business do? Who do you help? What makes you different? The more detail, the better the AI suggestions will be."
                     required
+                    data-required-msg="Description is required (min 20 characters)"
                   ></textarea>
                   <span class="input-highlight"></span>
                 </div>
@@ -527,24 +544,25 @@
                   <label class="template-box">
   <input type="radio" name="template" value="template-12" hidden>
   <div class="template-content">
-    <div class="template-preview template-12-prev">
-      <div class="tp-nav tp-nav-dark" style="border-bottom:1px solid rgba(0,220,180,.15)">
-        <div style="width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#00dcb4,#00a8ff);flex-shrink:0"></div>
+    <div class="template-preview template-12-prev" style="background:#ffffff">
+      <div class="tp-nav" style="background:rgba(255,255,255,.92);border-bottom:1px solid rgba(10,14,20,.08)">
+        <div style="width:20px;height:20px;border-radius:6px;background:linear-gradient(135deg,#00a085,#0ea581);flex-shrink:0"></div>
+        <div style="width:22px;height:6px;border-radius:3px;background:#0a0e14;margin-left:auto"></div>
       </div>
       <div style="padding:8px 8px 4px;display:flex;flex-direction:column;gap:3px">
-        <div class="tp-line" style="width:55%;background:rgba(0,220,180,.6);height:3px"></div>
-        <div class="tp-line tp-line-lg" style="background:rgba(238,240,244,.7);height:6px"></div>
-        <div class="tp-line tp-line-md" style="background:rgba(238,240,244,.3)"></div>
+        <div class="tp-line" style="width:55%;background:rgba(0,160,133,.7);height:3px"></div>
+        <div class="tp-line tp-line-lg" style="background:rgba(10,14,20,.85);height:6px"></div>
+        <div class="tp-line tp-line-md" style="background:rgba(10,14,20,.45)"></div>
       </div>
-      <div style="margin:4px 6px;background:#131720;border:1px solid rgba(0,220,180,.2);border-radius:5px;padding:6px 8px">
-        <div style="height:2px;width:70%;background:rgba(0,220,180,.4);border-radius:1px;margin-bottom:3px"></div>
-        <div style="height:2px;width:50%;background:rgba(251,191,36,.3);border-radius:1px;margin-bottom:3px"></div>
-        <div style="height:2px;width:80%;background:rgba(196,132,252,.3);border-radius:1px"></div>
+      <div style="margin:4px 6px;background:#131923;border:1px solid rgba(0,160,133,.25);border-radius:5px;padding:6px 8px">
+        <div style="height:2px;width:70%;background:rgba(0,160,133,.55);border-radius:1px;margin-bottom:3px"></div>
+        <div style="height:2px;width:50%;background:rgba(251,191,36,.45);border-radius:1px;margin-bottom:3px"></div>
+        <div style="height:2px;width:80%;background:rgba(196,132,252,.4);border-radius:1px"></div>
       </div>
       <div style="display:flex;gap:3px;padding:3px 6px">
-        <div style="flex:1;height:14px;background:rgba(0,220,180,.08);border:1px solid rgba(0,220,180,.15);border-radius:3px"></div>
-        <div style="flex:1;height:14px;background:rgba(0,220,180,.08);border:1px solid rgba(0,220,180,.15);border-radius:3px"></div>
-        <div style="flex:1;height:14px;background:rgba(0,220,180,.08);border:1px solid rgba(0,220,180,.15);border-radius:3px"></div>
+        <div style="flex:1;height:14px;background:#fff;border:1px solid rgba(10,14,20,.08);border-radius:3px;box-shadow:0 1px 2px rgba(10,14,20,.04)"></div>
+        <div style="flex:1;height:14px;background:#fff;border:1px solid rgba(10,14,20,.08);border-radius:3px;box-shadow:0 1px 2px rgba(10,14,20,.04)"></div>
+        <div style="flex:1;height:14px;background:#fff;border:1px solid rgba(10,14,20,.08);border-radius:3px;box-shadow:0 1px 2px rgba(10,14,20,.04)"></div>
       </div>
     </div>
     <div class="template-label">
@@ -797,11 +815,76 @@
 
       <!-- FOOTER -->
       <footer class="footer">
-        <div class="footer-inner">
-          <span class="footer-logo"
-            >Beyond<span style="color: var(--accent)">Site</span></span
-          >
-          <p>Crafted for creators who move fast · AI-powered · © 2025 BeyondSite</p>
+        <div class="footer-grid">
+
+          <!-- BRAND + PARENT ATTRIBUTION -->
+          <div class="footer-col footer-brand-col">
+            <a href="/" class="footer-logo">Beyond<span class="footer-logo-accent">Site</span></a>
+            <p class="footer-tagline">A no-code website generator for businesses across BFSI, NBFC, insurance, and beyond. Built by the BeyondSure team.</p>
+            <div class="footer-parent">
+              <span class="footer-parent-label">A product of</span>
+              <a href="https://www.beyondsure.in/" target="_blank" rel="noopener" class="footer-parent-link">
+                <span class="parent-mark">BS</span>
+                <span class="parent-name">BeyondSure<small>· Shrigoda TechLabs Pvt Ltd</small></span>
+              </a>
+            </div>
+          </div>
+
+          <!-- PRODUCT -->
+          <div class="footer-col">
+            <h4 class="footer-col-title">Product</h4>
+            <ul class="footer-links">
+              <li><a href="/">Build a Website</a></li>
+              <li><a href="/#template-grid">Templates</a></li>
+              <li><a href="/plans">Pricing</a></li>
+              <li><a href="/profile">My Account</a></li>
+              <li><a href="/login">Sign In</a></li>
+            </ul>
+          </div>
+
+          <!-- COMPANY (links to parent site) -->
+          <div class="footer-col">
+            <h4 class="footer-col-title">Company</h4>
+            <ul class="footer-links">
+              <li><a href="https://www.beyondsure.in/about" target="_blank" rel="noopener">About BeyondSure</a></li>
+              <li><a href="https://www.beyondsure.in/ourteam" target="_blank" rel="noopener">Our Team</a></li>
+              <li><a href="https://www.beyondsure.in/contact" target="_blank" rel="noopener">Contact</a></li>
+              <li><a href="https://www.beyondsure.in/book-a-demo" target="_blank" rel="noopener">Book a Demo</a></li>
+            </ul>
+          </div>
+
+          <!-- LEGAL -->
+          <div class="footer-col">
+            <h4 class="footer-col-title">Legal</h4>
+            <ul class="footer-links">
+              <li><a href="https://www.beyondsure.in/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a></li>
+              <li><a href="https://www.beyondsure.in/terms-conditions" target="_blank" rel="noopener">Terms &amp; Conditions</a></li>
+              <li><a href="https://www.beyondsure.in/refund-cancellation" target="_blank" rel="noopener">Refund &amp; Cancellation</a></li>
+              <li><a href="https://www.beyondsure.in/disclaimer" target="_blank" rel="noopener">Disclaimer</a></li>
+            </ul>
+          </div>
+
+        </div>
+
+        <!-- DISCLAIMER (small print) -->
+        <div class="footer-disclaim">
+          BeyondSite is a website-generation SaaS tool. The websites it produces are static HTML/CSS/JS files owned entirely by the user. BeyondSite does not host or store generated websites. Templates that include regulatory disclosures (BFSI · Insurance · NBFC · Insurance Market) are starter scaffolds only — final copy must be reviewed by the user's compliance team to match their actual registration, licence numbers, and applicable RBI / IRDAI guidelines.
+        </div>
+
+        <!-- BOTTOM BAR -->
+        <div class="footer-bottom">
+          <div class="footer-addr">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            <span>203, Shivam Square, 4 Sahar Road, Kondivita, Andheri (E), Mumbai 400069, Maharashtra, India</span>
+          </div>
+          <div class="footer-meta">
+            <span>© <span id="footerYear">2026</span> Shrigoda TechLabs Pvt Ltd</span>
+            <span class="footer-meta-sep">·</span>
+            <span class="footer-meta-tag">Made in India</span>
+          </div>
         </div>
       </footer>
     </div>
@@ -811,6 +894,14 @@
     <script src="template-preview.js" defer></script>
     <script src="chatbot.js" defer></script>
     <script src="preview-frame.js" defer></script>
+
+    <script>
+      // Footer year — auto-current so the copyright never goes stale
+      (function () {
+        const y = document.getElementById('footerYear');
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
 
     <script>
       /* ── ARC GALLERY ─────────────────────────────────────────────

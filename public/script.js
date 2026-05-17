@@ -148,20 +148,116 @@ if (isFormPage) {
   // Initial load
   loadSchemaForCurrentTemplate();
 
+  // ── Required-field validation helpers ─────────────────────────
+  // Three fields that customers MUST fill before preview. Admin bypasses
+  // these and gets sample defaults injected instead (see else branch below).
+  const REQUIRED_FIELD_IDS = ['businessName', 'tagline', 'description'];
+
+  function clearFieldError(el) {
+    if (el && el.classList) el.classList.remove('field-error');
+  }
+  function clearAllFieldErrors() {
+    REQUIRED_FIELD_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('field-error');
+    });
+    const banner = document.getElementById('formBannerError');
+    if (banner) banner.hidden = true;
+  }
+  function attachClearOnInput() {
+    // Once attached, this listener auto-clears the red ring the moment the
+    // user starts typing in a previously-invalid field. Idempotent — safe
+    // to call multiple times because we tag the input with a data flag.
+    REQUIRED_FIELD_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el || el.dataset.clearWired === '1') return;
+      el.addEventListener('input', () => clearFieldError(el));
+      el.dataset.clearWired = '1';
+    });
+  }
+  attachClearOnInput();
+
+  function showRequiredError(missing) {
+    // Mark each missing field with the red ring + shake
+    const missingEls = missing.map(id => document.getElementById(id)).filter(Boolean);
+    missingEls.forEach(el => {
+      el.classList.remove('field-error');     // restart the shake animation
+      // force a reflow so re-adding the class triggers the animation again
+      void el.offsetWidth;                     // eslint-disable-line no-unused-expressions
+      el.classList.add('field-error');
+    });
+
+    // Populate + reveal the inline banner
+    const banner = document.getElementById('formBannerError');
+    const detail = document.getElementById('formBannerDetail');
+    if (banner && detail) {
+      if (missing.length === 1) {
+        const el = document.getElementById(missing[0]);
+        detail.textContent = (el && el.dataset.requiredMsg) || 'This field is required.';
+      } else {
+        const names = missing.map(id => ({
+          businessName: 'business name',
+          tagline:      'tagline',
+          description:  'description'
+        }[id] || id));
+        // "X, Y, and Z" formatting
+        const list = names.length === 2
+          ? `${names[0]} and ${names[1]}`
+          : `${names.slice(0,-1).join(', ')}, and ${names.slice(-1)}`;
+        detail.textContent = `Please fill in the ${list} before previewing.`;
+      }
+      banner.hidden = false;
+    }
+
+    // Smooth-scroll to the FIRST missing field (with some headroom for the nav)
+    const first = missingEls[0];
+    if (first) {
+      const rect = first.getBoundingClientRect();
+      const targetY = window.pageYOffset + rect.top - 120; // 120px headroom for sticky nav
+      window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+      setTimeout(() => first.focus({ preventScroll: true }), 380);
+    }
+  }
+
   // ── Step 1 → Step 2 (Preview) ──
   window.showPreview = async function () {
     // Require login (admin bypasses form requirement)
     if (!requireLogin()) return;
-    
+
     const data = collectAll();
     // Admin can skip form validation
     if (!isAdmin()) {
-      if (!data.businessName || !data.tagline || !data._description) {
-        return showNotification('Please fill in business name, tagline, and description', 'error');
+      // Figure out which required fields are missing (in DOM order so we
+      // scroll to the topmost one).
+      const missing = REQUIRED_FIELD_IDS.filter(id => {
+        const key = id === 'description' ? '_description' : id;
+        return !data[key] || !String(data[key]).trim();
+      });
+      if (missing.length > 0) {
+        return showRequiredError(missing);
       }
+      // Specific min-length rule for description
       if (data._description.length < 20) {
-        return showNotification('Description too short (min 20 chars)', 'error');
+        const el = document.getElementById('description');
+        if (el) {
+          void el.offsetWidth;
+          el.classList.add('field-error');
+        }
+        const banner = document.getElementById('formBannerError');
+        const detail = document.getElementById('formBannerDetail');
+        if (banner && detail) {
+          detail.textContent = 'Description is too short — please add more detail (at least 20 characters). The longer it is, the better the AI suggestions will be.';
+          banner.hidden = false;
+        }
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          window.scrollTo({ top: window.pageYOffset + rect.top - 120, behavior: 'smooth' });
+          setTimeout(() => el.focus({ preventScroll: true }), 380);
+        }
+        return;
       }
+      // All good — clear any leftover errors
+      clearAllFieldErrors();
     } else {
       // For admin with empty form, use defaults
       if (!data.businessName) data.businessName = 'Your Business Name';
