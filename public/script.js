@@ -319,25 +319,83 @@ if (isFormPage) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // ── Dummy payment ──
-  window.dummyPay = async function () {
+  // ── Payment (Razorpay or dummy depending on PAYMENT_PROVIDER) ──
+  window.initPayment = async function () {
+    // Admin bypass — skip checkout entirely, DB not required
+    if (isAdmin()) {
+      paymentId = 'admin_bypass_' + Date.now();
+      document.getElementById('payUnpaid').style.display = 'none';
+      document.getElementById('payPaid').style.display = 'block';
+      document.getElementById('payReceipt').textContent = 'Admin bypass — no charge';
+      showNotification('Admin bypass — payment skipped', 'success');
+      return;
+    }
+
     showLoadingOverlay(true);
     try {
+      const template = selectedTemplate();
       const res = await fetch('/api/pay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: 9, currency: 'USD' })
+        body: JSON.stringify({ templateId: template })
       });
       const out = await res.json();
-      if (!res.ok) throw new Error(out.error || 'Payment failed');
-
-      paymentId = out.paymentId;
-      document.getElementById('payUnpaid').style.display = 'none';
-      document.getElementById('payPaid').style.display = 'block';
-      document.getElementById('payReceipt').textContent = `Receipt: ${paymentId}`;
-
+      if (!res.ok) throw new Error(out.error || 'Payment setup failed');
       showLoadingOverlay(false);
-      showNotification('Payment successful (simulated) 🎉', 'success');
+
+      if (out.providerData.provider === 'dummy') {
+        // Dev / test mode with no real gateway
+        paymentId = out.paymentId;
+        document.getElementById('payUnpaid').style.display = 'none';
+        document.getElementById('payPaid').style.display = 'block';
+        document.getElementById('payReceipt').textContent = `Receipt: ${paymentId}`;
+        showNotification('Payment successful (test mode)', 'success');
+        return;
+      }
+
+      // Razorpay checkout
+      const { keyId, amount, currency } = out.providerData;
+      const rzpOptions = {
+        key:         keyId,
+        amount:      amount,
+        currency:    currency,
+        order_id:    out.orderId,
+        name:        'BeyondSite',
+        description: 'Website Package · One-time',
+        theme:       { color: '#2ec97b' },
+        handler: async function (response) {
+          showLoadingOverlay(true);
+          try {
+            const vRes = await fetch('/api/payments/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id:   response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature:  response.razorpay_signature
+              })
+            });
+            const vOut = await vRes.json();
+            if (!vRes.ok || !vOut.ok) throw new Error(vOut.error || 'Verification failed');
+            paymentId = vOut.paymentId;
+            document.getElementById('payUnpaid').style.display = 'none';
+            document.getElementById('payPaid').style.display = 'block';
+            document.getElementById('payReceipt').textContent = `Order: ${paymentId}`;
+            showNotification('Payment successful 🎉', 'success');
+          } catch (err) {
+            showNotification('Payment verification failed: ' + err.message, 'error');
+          } finally {
+            showLoadingOverlay(false);
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            showNotification('Payment cancelled', 'error');
+          }
+        }
+      };
+      const rzp = new window.Razorpay(rzpOptions);
+      rzp.open();
     } catch (err) {
       showLoadingOverlay(false);
       showNotification('Payment error: ' + err.message, 'error');

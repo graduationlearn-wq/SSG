@@ -326,7 +326,7 @@ function pickPrompt(templateId, sectionId, ctx) {
 // callGroqAI runs before that, the require() here pulls the same cached module.
 
 const { extractJSON, templatePath, buildTemplateData } = require('./src/lib/utils');
-const { payments, PAYMENT_TTL_MS, consumePayment }    = require('./src/lib/payments');
+const { payments, PAYMENT_TTL_MS, consumePayment, createPayment, verifyWebhook, verifyRazorpaySignature, markPaymentPaid } = require('./src/lib/payments');
 
 // Layer 1 — Gemini (primary). Retries on 503 with backoff.
 async function callGeminiAI(prompt) {
@@ -506,17 +506,60 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
   }
 });
 
-// ── DUMMY PAYMENTS ──────────────────────────────────────
-// Stored in memory — replace with Stripe/Razorpay webhook store later.
-// payments Map and consumePayment live in src/lib/payments.js.
+// ── PAYMENTS ─────────────────────────────────────────────────────────────────
+// PAYMENT_PROVIDER=razorpay → real Razorpay orders (src/lib/payments.js)
+// PAYMENT_PROVIDER=dummy   → in-memory mock (no charge, for dev/testing)
+// Admin bypass in /api/generate is always active regardless of provider.
 
-app.post('/api/pay', payLimiter, (req, res) => {
-  const { amount = 9, currency = 'USD' } = req.body || {};
-  const paymentId = 'pay_' + crypto.randomBytes(8).toString('hex');
-  payments.set(paymentId, { amount, currency, createdAt: Date.now(), usedAt: null });
-  logger.info({ paymentId, amount, currency }, 'Payment created');
-  res.json({ paymentId, amount, currency, status: 'succeeded' });
+app.post('/api/pay', payLimiter, async (req, res) => {
+  try {
+    const { templateId = 'unknown' } = req.body || {};
+    const result = await createPayment({ templateId, amount: 499900, currency: 'INR' });
+    logger.info({ paymentId: result.paymentId, provider: result.providerData.provider }, 'Payment order created');
+    res.json(result);
+  } catch (err) {
+    logger.error({ error: err.message }, 'Payment creation failed');
+    res.status(500).json({ error: 'Payment setup failed. Please try again.' });
+  }
 });
+
+// Verify Razorpay client-side signature (called after checkout widget succeeds)
+app.post('/api/payments/verify', payLimiter, (req, res) => {
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
+  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    return res.status(400).json({ error: 'Missing payment verification fields.' });
+  }
+  try {
+    const valid = verifyRazorpaySignature({ razorpay_order_id, razorpay_payment_id, razorpay_signature });
+    if (!valid) return res.status(400).json({ error: 'Payment signature invalid.' });
+    markPaymentPaid(razorpay_order_id, razorpay_payment_id);
+    logger.info({ orderId: razorpay_order_id, razorpayPaymentId: razorpay_payment_id }, 'Payment verified');
+    res.json({ ok: true, paymentId: razorpay_order_id });
+  } catch (err) {
+    logger.error({ error: err.message }, 'Payment verification error');
+    res.status(400).json({ error: 'Payment verification failed.' });
+  }
+});
+
+// Razorpay server-to-server webhook — must receive raw body for signature check
+app.post('/api/payments/webhook',
+  express.raw({ type: 'application/json' }),
+  (req, res) => {
+    if (!process.env.RAZORPAY_WEBHOOK_SECRET) {
+      logger.warn('RAZORPAY_WEBHOOK_SECRET not set — webhook skipped');
+      return res.json({ ok: true });
+    }
+    try {
+      const { paymentId, status } = verifyWebhook({ headers: req.headers, rawBody: req.body });
+      if (status === 'PAID') markPaymentPaid(paymentId, '');
+      logger.info({ paymentId, status }, 'Razorpay webhook processed');
+      res.json({ ok: true });
+    } catch (err) {
+      logger.warn({ error: err.message }, 'Razorpay webhook verification failed');
+      res.status(400).json({ error: err.message });
+    }
+  }
+);
 
 // Preview (no payment, renders HTML only)
 app.post('/api/preview', previewLimiter, async (req, res) => {

@@ -63,15 +63,26 @@ System prompt is strict scope-lock built from `buildChatSystemPrompt(context)`. 
 
 **Note:** most social messages (greetings, thanks, identity, etc.) are caught client-side by the local intent matcher in `chatbot.js` and never hit this endpoint.
 
-## Payment (dummy)
+## Payment (Razorpay · test credentials active)
 
-| Method | Path           | Body                          | Returns                                                |
-|---     |---             |---                             |---                                                      |
-| POST   | `/api/pay`     | `{ amount?, currency? }`       | `{ paymentId, amount, currency, status: 'succeeded' }` |
+| Method | Path                       | Body                                                                               | Returns                                                                        |
+|---     |---                         |---                                                                                 |---                                                                              |
+| POST   | `/api/pay`                 | `{ templateId }`                                                                   | `{ paymentId, orderId, providerData: { provider, keyId, amount, currency } }`  |
+| POST   | `/api/payments/verify`     | `{ razorpay_order_id, razorpay_payment_id, razorpay_signature }`                   | `{ ok: true, paymentId }` or `400 { error }`                                   |
+| POST   | `/api/payments/webhook`    | Razorpay raw webhook body (requires `x-razorpay-signature` header)                 | `{ ok: true }` or `400 { error }`                                              |
 
-Rate limit: `payLimiter` — 20 attempts per hour per IP.
+Rate limit: `payLimiter` — 20 attempts per hour per IP (shared across all three routes).
 
-**Implementation:** in-memory `Map`, 30-min TTL. Resets on server restart. Replace with Stripe/Razorpay (ROADMAP).
+**Flow (Razorpay):**
+1. Frontend calls `/api/pay` → server creates Razorpay order via `rzp.orders.create()` → stores entry in in-memory `payments` Map with `status: CREATED` → returns `providerData` with `keyId`, `amount`, `currency`.
+2. Frontend opens `new window.Razorpay(options)` checkout widget using `providerData`.
+3. On checkout success, Razorpay returns `{ razorpay_order_id, razorpay_payment_id, razorpay_signature }`.
+4. Frontend calls `/api/payments/verify` → server verifies HMAC-SHA256 → marks payment `status: PAID` in Map → returns `{ ok: true, paymentId: orderId }`.
+5. Frontend calls `/api/generate` with the verified `paymentId` → `consumePayment()` checks `status === PAID` → ZIP download.
+
+**Admin bypass:** `paymentId = 'admin_bypass_' + Date.now()` skips `consumePayment()` entirely. No Razorpay call made.
+
+**Fallback (dummy mode):** set `PAYMENT_PROVIDER=dummy` to skip Razorpay entirely — `/api/pay` returns a synthetic paymentId with `status: PAID` immediately. Useful for local dev without credentials.
 
 ## Render
 
@@ -109,12 +120,12 @@ app.listen(PORT, () => console.log(`▶ Server running on http://localhost:${POR
 
 ## Rate-limit summary
 
-| Limiter        | Routes                | Window  | Max  |
-|---             |---                    |---      |---   |
-| `aiLimiter`    | `/api/ai-section`     | 1 hour  | 15   |
-| `chatLimiter`  | `/api/chat`           | 10 min  | 30   |
-| `genLimiter`   | `/api/generate`       | 1 hour  | 10   |
-| `payLimiter`   | `/api/pay`            | 1 hour  | 20   |
+| Limiter        | Routes                                                          | Window  | Max  |
+|---             |---                                                              |---      |---   |
+| `aiLimiter`    | `/api/ai-section`                                               | 1 hour  | 15   |
+| `chatLimiter`  | `/api/chat`                                                     | 10 min  | 30   |
+| `genLimiter`   | `/api/generate`                                                 | 1 hour  | 10   |
+| `payLimiter`   | `/api/pay`, `/api/payments/verify`, `/api/payments/webhook`     | 1 hour  | 20   |
 
 ## Related
 

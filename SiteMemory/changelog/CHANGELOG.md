@@ -6,6 +6,37 @@ Round-by-round history of every meaningful change. **Append-only** — new round
 
 ---
 
+## Round J — 2026-05-18
+
+**Razorpay integration activated, price set to ₹4,999, step-wise registration form, Prisma migration for Razorpay fields.**
+
+**Touched:** [[01_CURRENT_STATE]] · [[01_api-routes]]
+
+### Shipped
+- **Razorpay payment live** (`src/lib/payments.js`, `server.js`) — `PAYMENT_PROVIDER=razorpay` now creates real Razorpay orders via `rzp.orders.create()`. Three routes: `/api/pay` (create order), `/api/payments/verify` (HMAC signature check → mark PAID), `/api/payments/webhook` (server-to-server events with raw body + signature verification). Admin bypass (`admin_bypass_*` paymentId) skips `consumePayment()` entirely — no DB required. `PAYMENT_PROVIDER=dummy` retains the old in-memory path for local dev.
+- **Price updated to ₹4,999** (499900 paise) — both frontend display (`index.html`) and order creation amount in `payments.js`.
+- **Razorpay checkout widget** — `checkout.razorpay.com/v1/checkout.js` loaded in `index.html`. `dummyPay()` in `script.js` replaced with `initPayment()`: creates order → opens widget → on success calls `/api/payments/verify` → shows paid state. Admins get instant bypass without touching the widget.
+- **Step-wise registration form** (`public/register.html`) — flat single-screen form replaced with 3-step wizard: Step 1 (Email + Password + Confirm), Step 2 (First Name + Last Name), Step 3 (Summary card + Terms checkbox + Submit). Per-step validation before advancing; Back button on steps 2 and 3. Same `/api/register` POST — no backend change needed.
+- **Prisma migration** `20260518000000_add_razorpay_fields` — adds `razorpayOrderId VARCHAR(64) NULL` and `razorpayPaymentId VARCHAR(64) NULL` to the `payments` table. Apply with `npx prisma migrate deploy`.
+- **Test credentials** added to `.env` — `RAZORPAY_KEY_ID=rzp_test_SLYllniTP6g4dd`, `RAZORPAY_KEY_SECRET=h4rn6y4swbHWB0YG43mnxJ64`.
+
+### Technical debt incurred
+- **`npm install razorpay` still required** — run once after pulling this branch.
+- **`RAZORPAY_WEBHOOK_SECRET` is blank** — configure a webhook in the Razorpay test dashboard (URL: `POST /api/payments/webhook`) and paste the secret into `.env`. Until then, webhook events are logged-and-skipped.
+- **Payments still in-memory** — `markPaymentPaid` / `consumePayment` use the in-memory Map. When DB is connected, replace with `prisma.payment.create/update` per scaffold comments in `payments.js`.
+
+### Verification
+- `node -c server.js` → clean parse.
+- Admin login → Step 3 pay screen → bypass notification fires → Download ZIP succeeds.
+- Register `/register`: step indicator advances, Back restores state, per-step validation fires, form submits on step 3.
+
+### What this round did NOT do
+- Did not run `npm install razorpay` — install deferred to deployer pull.
+- Did not wire Prisma to payment persistence — still in-memory.
+- Did not swap test Razorpay keys for live production credentials.
+
+---
+
 ## Round I — 2026-05-15 → 2026-05-18
 
 **Deployer-readiness pass. The intent of this round: someone outside Kunal's head should be able to deploy the app to production by following a checklist, not by reverse-engineering it.**

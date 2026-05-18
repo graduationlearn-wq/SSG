@@ -726,20 +726,20 @@
                 </div>
                 <div class="pay-row">
                   <span class="pay-label">One-time payment</span>
-                  <span class="pay-val pay-price">$9.00</span>
+                  <span class="pay-val pay-price">₹4,999</span>
                 </div>
                 <div class="pay-divider"></div>
 
                 <div id="payUnpaid">
                   <p class="pay-note">
-                    Testing mode — no real charge will be made.
+                    Secure payment via Razorpay · UPI, cards, net banking accepted.
                   </p>
                   <button
                     type="button"
                     class="btn btn-primary btn-lg btn-full"
-                    onclick="dummyPay()"
+                    onclick="initPayment()"
                   >
-                    Pay $9.00 &amp; Unlock Download
+                    Pay ₹4,999 &amp; Unlock Download
                   </button>
                   <button
                     type="button"
@@ -890,6 +890,7 @@
     </div>
 
     <script src="form-renderer.js"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script src="script.js"></script>
     <script src="template-preview.js" defer></script>
     <script src="chatbot.js" defer></script>

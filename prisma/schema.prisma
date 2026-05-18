@@ -91,13 +91,15 @@ model Payment {
   userId      String?
   user        User?    @relation(fields: [userId], references: [id], onDelete: Restrict)
 
-  paymentId   String   @unique
-  amount      Int
-  currency    String   @default("INR")
-  status      PaymentStatus @default(CREATED)
-  templateId  String
-  usedAt      DateTime?
-  createdAt   DateTime @default(now())
+  paymentId         String   @unique
+  amount            Int
+  currency          String   @default("INR")
+  status            PaymentStatus @default(CREATED)
+  templateId        String
+  razorpayOrderId   String?  @db.VarChar(64)
+  razorpayPaymentId String?  @db.VarChar(64)
+  usedAt            DateTime?
+  createdAt         DateTime @default(now())
 
   downloads   Download[]
 

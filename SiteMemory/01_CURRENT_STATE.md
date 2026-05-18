@@ -69,7 +69,8 @@ See [[_registry|Templates registry]] for one-line descriptions per template.
 
 ### Generation & payment
 - **Generate endpoint** zips rendered HTML as `index.html` plus referenced `/uploads/*` images into `assets/`. Streams as a downloadable ZIP with a slugified business name.
-- **Dummy payment** — `/api/pay` issues a one-time $9 payment ID with 30-min TTL in an in-memory Map; gates `/api/generate`.
+- **Razorpay payment wired** — `PAYMENT_PROVIDER=razorpay` (test credentials in `.env`). `/api/pay` creates a real Razorpay order (₹4,999); `/api/payments/verify` validates HMAC signature and marks PAID; `/api/generate` gates on PAID status. Admin bypass (`admin_bypass_*`) skips payment entirely — no DB required. Fallback: set `PAYMENT_PROVIDER=dummy` for local dev without credentials.
+- **Step-wise registration form** — `/register` now uses a 3-step wizard: Step 1 (Email + Password), Step 2 (Name), Step 3 (Summary + Terms). Same `/api/register` POST on submit.
 
 ### Polish
 - **Custom yellow-dot cursor** on main app pages (z-index 100000). Native cursor on login.html / profile.html / plans.html.
@@ -81,7 +82,7 @@ See [[_registry|Templates registry]] for one-line descriptions per template.
 ## What's broken / incomplete
 
 - **Template 1 (Editorial) is still on the legacy non-safe-locals pattern.** It works because `buildTemplateData` injects defaults for the legacy fields, but it's not as defensive as templates 2–13. Refactor is on the roadmap.
-- **Payment gateway is still a dummy.** Stripe/Razorpay not wired. The Prisma `Payment` model is ready; the integration isn't.
+- **Razorpay running on test credentials** — real charges won't happen until test keys are swapped for live keys. `RAZORPAY_WEBHOOK_SECRET` is blank until a webhook is configured in the Razorpay dashboard. `npm install razorpay` must be run once after pulling this branch.
 - **Auth is dummy** — Auth0 middleware is wired, but production routes still defer to the `DUMMY_USERS` whitelist for the review demo. Flip the env vars + `DEV_AUTH_BYPASS=false` to switch over.
 - **No persistent user data in the running app.** Prisma is scaffolded but the live demo still uses in-memory state — drafts and form state are lost on refresh until we wire the Draft + Website models to the routes.
 - **Custom cursor logic is still inline in `index.html`.** Not yet extracted to `public/cursor.js`.
