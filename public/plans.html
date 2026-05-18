@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -135,12 +135,12 @@
     // THEME TOGGLE (shared with profile)
     (function () {
       const root = document.documentElement;
-      const saved = localStorage.getItem('beyondsite_theme') || 'light';
+      const saved = localStorage.getItem('beyondsite-theme') || 'dark';
       root.setAttribute('data-theme', saved);
       document.getElementById('themeToggle').addEventListener('click', () => {
         const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
         root.setAttribute('data-theme', next);
-        localStorage.setItem('beyondsite_theme', next);
+        localStorage.setItem('beyondsite-theme', next);
       });
     })();
 

@@ -14,7 +14,7 @@ This guide walks the tech team through taking BeyondSite from "intern repo on Gi
 | MySQL schema        | ✅ Ready    | `prisma/migrations/20260515000000_init/migration.sql` — apply with `npm run db:migrate:deploy` |
 | Seed data           | ✅ Ready    | `npm run db:seed` — upserts 13 templates + first admin                          |
 | Auth0 middleware    | ✅ Ready    | Set `AUTH0_DOMAIN` + `AUTH0_AUDIENCE` → activates automatically                 |
-| Login route swap    | 🟡 Manual   | Replace `DUMMY_USERS` block in `server.js` (HANDOFF comment shows the recipe)   |
+| Login route swap    | 🟡 Manual   | Replace `DUMMY_USERS` block in `server.js` + add `/auth/google` routes (HANDOFF comment shows the recipe)   |
 | Razorpay / Stripe   | 🟡 Manual   | Uncomment the scaffold in `src/lib/payments.js`, set env vars, wire webhook    |
 | Logging             | ✅ Ready    | Winston JSON in prod, pipes to stdout (Datadog / CloudWatch / Loki pick up)    |
 | CI                  | ✅ Ready    | `.github/workflows/ci.yml` already passes on every push                         |
@@ -36,6 +36,7 @@ You need three external services:
 - **An Auth0 tenant.** Free tier is fine for years. In the Auth0 dashboard:
   - Create an API → note the **Audience** (e.g. `https://api.beyondsite.com`)
   - Create a SPA Application → note the **Domain** and **Client ID**
+  - Enable **Google OAuth**: Go to Authentication → Connections → Social → Google → enable and configure allowed domains
   - (Optional) Add a Login Action that sets a `https://beyondSure.com/role` custom claim so users come back from Auth0 already tagged as `admin` or `customer`
 - **A container host.** Render is the easiest — free tier, auto-deploy on git push, zero config. Railway and Fly are also good. EKS / ECS work too if the team is already on AWS.
 
@@ -119,6 +120,49 @@ Open `server.js`, find the `// HANDOFF — Replace the DUMMY_USERS path below` b
 4. Return `{ success, isAdmin, email, name }` same shape as before.
 
 Once that's working, remove the `DUMMY_USERS` constant entirely.
+
+**Google OAuth routes** (optional but recommended):
+
+Add these routes in `server.js` before the existing auth routes:
+
+```js
+// Google OAuth - redirect to Auth0
+app.get('/auth/google', (req, res) => {
+  const redirectUri = `${process.env.APP_URL}/auth/google/callback`;
+  const authUrl = `https://${process.env.AUTH0_DOMAIN}/authorize?` +
+    `response_type=code&` +
+    `client_id=${process.env.AUTH0_CLIENT_ID}&` +
+    `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+    `scope=openid profile email`;
+  res.redirect(authUrl);
+});
+
+// Google OAuth callback - exchange code for token
+app.get('/auth/google/callback', async (req, res) => {
+  const { code } = req.query;
+  if (!code) return res.status(400).json({ error: 'No code provided' });
+
+  try {
+    const tokenResponse = await axios.post(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
+      grant_type: 'authorization_code',
+      client_id: process.env.AUTH0_CLIENT_ID,
+      client_secret: process.env.AUTH0_CLIENT_SECRET,
+      code,
+      redirect_uri: `${process.env.APP_URL}/auth/google/callback`
+    });
+
+    const { access_token } = tokenResponse.data;
+    const decoded = await verifyToken(access_token);
+    const user = await getOrCreateUser(decoded);
+
+    // Set session and redirect to home with token
+    res.redirect(`/login?token=${access_token}&email=${encodeURIComponent(user.email)}&isAdmin=${user.role === 'ADMIN'}`);
+  } catch (err) {
+    logger.error({ error: err.message }, 'Google auth callback failed');
+    res.redirect('/login?error=auth_failed');
+  }
+});
+```
 
 ### 5. Swap the dummy payment for Razorpay (or Stripe)
 

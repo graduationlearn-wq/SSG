@@ -22,7 +22,6 @@ Thumbs.db
 npm-debug.log*
 
 .obsidian/
-SiteMemory/
 .claude/
 
 # Prisma
