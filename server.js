@@ -191,7 +191,7 @@ app.get(/^\/template-previews\/preview-([a-z0-9-]+)\.html$/, (req, res) => {
 });
 
 // ── Generalized image upload ────────────────────────────
-app.post('/api/upload-image', imageUpload.single('file'), (req, res) => {
+app.post('/api/upload-image', authenticate(), imageUpload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
   const filename = isS3() ? req.file.key : req.file.filename;
   const base = isS3() ? getFileBaseUrl() : '/uploads/images';
@@ -199,7 +199,7 @@ app.post('/api/upload-image', imageUpload.single('file'), (req, res) => {
 });
 
 // Back-compat alias — old client builds still use this route / field name.
-app.post('/api/upload-logo', imageUpload.single('logo'), (req, res) => {
+app.post('/api/upload-logo', authenticate(), imageUpload.single('logo'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
   const filename = isS3() ? req.file.key : req.file.filename;
   const base = isS3() ? getFileBaseUrl() : '/uploads/images';
@@ -527,7 +527,7 @@ app.post('/api/preview', async (req, res) => {
 });
 
 // Download (payment-gated, zips the rendered index.html + any uploaded assets)
-app.post('/api/generate', genLimiter, async (req, res) => {
+app.post('/api/generate', authenticate(), genLimiter, async (req, res) => {
   try {
     const { template, data = {}, paymentId } = req.body || {};
     if (!paymentId) return res.status(402).json({ error: 'Payment required' });
